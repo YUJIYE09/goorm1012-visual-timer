@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visual Timer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <svg id="dial" viewBox="0 0 200 200" aria-label="시각 타이머">
+      <circle cx="100" cy="100" r="92" class="face" />
+      <path id="wedge" class="wedge" />
+      <g id="ticks"></g>
+      <circle cx="100" cy="100" r="9" class="knob" />
+      <g id="readout">
+        <rect x="46" y="130" width="108" height="28" rx="14" class="readout-bg" />
+        <text id="readout-text" x="100" y="149" text-anchor="middle" class="readout-text">10:00</text>
+      </g>
+    </svg>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>
