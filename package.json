@@ -2,10 +2,13 @@
   "name": "visual-timer",
   "version": "0.1.0",
   "private": true,
+  "description": "남은 시간을 부채꼴로 보여주는 Windows용 시각 타이머 (Tauri 2)",
   "scripts": {
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "vitest run"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2"
+    "@tauri-apps/cli": "2.12.2",
+    "vitest": "3.2.4"
   }
 }

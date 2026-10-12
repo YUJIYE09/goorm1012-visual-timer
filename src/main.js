@@ -1,14 +1,22 @@
+import {
+  MAX_MIN,
+  formatTime,
+  minutesFromAngle,
+  remainingAt,
+  sweepDegrees,
+} from "./timer-logic.js";
+
 const { getCurrentWindow } = window.__TAURI__.window;
 const win = getCurrentWindow();
 
 // ---------- 상수 및 DOM ----------
 const CX = 100, CY = 100, R = 92;   // 다이얼 중심과 반지름 (viewBox 기준)
 const RIM = 100;                    // R~RIM 구간은 창 이동용 바깥 테두리
-const MAX_MIN = 60;                 // 최대 설정 시간(분)
 
 const dial = document.getElementById("dial");
 const wedge = document.getElementById("wedge");
 const ticksGroup = document.getElementById("ticks");
+const readoutBtn = document.getElementById("readout");
 const readoutText = document.getElementById("readout-text");
 
 // ---------- 설정 (localStorage 저장) ----------
@@ -45,28 +53,16 @@ function pointerPolar(e) {
   return { deg, dist: Math.hypot(x, y) };
 }
 
-// ---------- 시간 표시 ----------
-function formatTime(ms) {
-  const sec = Math.ceil(ms / 1000);
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
+// ---------- 그리기 ----------
 function updateReadout() {
   const icon = state.running ? "❚❚" : "▶";
   readoutText.textContent = state.finished ? "완료" : `${icon} ${formatTime(state.remainingMs)}`;
 }
 
-// ---------- 그리기 ----------
-// 60분을 한 바퀴(360°)로 고정합니다. 설정 시간과 관계없이 눈금 위치가 같습니다.
-// 예: 30분 = 6시 방향, 45분 = 9시 방향
-const FULL_MS = MAX_MIN * 60_000;
-
 function drawWedge() {
   updateReadout();
 
-  const sweep = Math.min(360, (state.remainingMs / FULL_MS) * 360);
+  const sweep = sweepDegrees(state.remainingMs);
 
   if (sweep <= 0) {
     wedge.setAttribute("d", "");
@@ -111,12 +107,7 @@ function drawTicks() {
 
 // ---------- 시간 설정 ----------
 function setMinutesFromAngle(deg, snap5) {
-  let min = Math.round((deg / 360) * MAX_MIN);
-  if (min === 0) min = MAX_MIN;
-  if (snap5) min = Math.round(min / 5) * 5;
-  min = Math.min(MAX_MIN, Math.max(1, min));
-
-  state.totalMs = min * 60_000;
+  state.totalMs = minutesFromAngle(deg, snap5) * 60_000;
   state.remainingMs = state.totalMs;
   state.finished = false;
   drawWedge();
@@ -130,7 +121,7 @@ function start() {
 }
 
 function pause() {
-  state.remainingMs = Math.max(0, state.endAt - Date.now());
+  state.remainingMs = remainingAt(state.endAt, Date.now());
   state.running = false;
 }
 
@@ -197,7 +188,7 @@ async function setOnTop(value) {
 let dragging = null;
 
 dial.addEventListener("pointerdown", (e) => {
-  // 시작/정지 버튼 위에서 누른 경우에는 시간 설정이나 창 이동을 하지 않습니다.
+  // 하단 시간 표시 위에서 누른 경우에는 시간 설정이나 창 이동을 하지 않습니다.
   if (e.target.closest && e.target.closest("#readout")) return;
 
   const { deg, dist } = pointerPolar(e);
@@ -222,9 +213,6 @@ dial.addEventListener("pointerdown", (e) => {
   }
 });
 
-// 하단 시간 표시를 누르면 시작/정지
-document.getElementById("readout").addEventListener("click", toggle);
-
 dial.addEventListener("pointermove", (e) => {
   if (dragging !== "dial" || state.running) return;
   const { deg } = pointerPolar(e);
@@ -241,6 +229,9 @@ dial.addEventListener("pointercancel", (e) => {
   dragging = null;
   dial.releasePointerCapture?.(e.pointerId);
 });
+
+// 하단 시간 표시를 누르면 시작/일시정지
+readoutBtn.addEventListener("click", toggle);
 
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
@@ -261,7 +252,7 @@ document.addEventListener("contextmenu", (e) => {
 // ---------- 주기적 갱신 ----------
 setInterval(() => {
   if (state.running) {
-    state.remainingMs = Math.max(0, state.endAt - Date.now());
+    state.remainingMs = remainingAt(state.endAt, Date.now());
     if (state.remainingMs === 0) {
       finish();
       return;
